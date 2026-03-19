@@ -66,17 +66,58 @@
     }
 
     async function fetchJobs() {
-        const response = await fetch('/api/jobs');
-        const jobs = await response.json();
-        const list = document.getElementById('jobList');
-        list.innerHTML = '';
-        jobs.forEach(job => {
-            const li = document.createElement('li');
-            li.className = 'list-group-item d-flex justify-content-between align-items-center';
-            li.innerHTML = `<strong>${job.title}</strong> <span>${job.experienceRequired} Years Exp.</span>`;
-            list.appendChild(li);
-        });
-    }
+            const response = await fetch('/api/jobs');
+            const jobs = await response.json();
+            const list = document.getElementById('jobList');
+            list.innerHTML = '';
+            jobs.forEach(job => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item';
+                li.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong>${job.title}</strong>
+                        <button class="btn btn-sm btn-info" onclick="viewCandidates(${job.jobId})">View Candidates</button>
+                    </div>
+                    <div id="candidates-for-${job.jobId}" class="mt-2 ms-3 d-none"></div>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        async function viewCandidates(jobId) {
+            const container = document.getElementById(`candidates-for-${jobId}`);
+            // Toggle visibility
+            if(!container.classList.contains('d-none')) {
+                container.classList.add('d-none');
+                return;
+            }
+
+            container.classList.remove('d-none');
+            container.innerHTML = '<span class="text-muted">Loading candidates...</span>';
+
+            const response = await fetch(`/api/applications/job/${jobId}`);
+            const applications = await response.json();
+
+            if(applications.length === 0) {
+                container.innerHTML = '<span class="text-danger small">No candidates have applied yet.</span>';
+                return;
+            }
+
+            let html = '<ul class="list-group list-group-flush">';
+            applications.forEach(app => {
+                // Currently matchScore is null, we'll fix that next!
+                let scoreDisplay = (app.matchScore !== undefined && app.matchScore !== null)
+                   ? `<strong>${app.matchScore.toFixed(2)}%</strong>`
+                   : `<span class="text-danger">Processing...</span>`;
+
+html += `<li class="list-group-item bg-light">
+            👤 ${app.candidateName}
+            <span class="badge bg-primary float-end">Score: ${scoreDisplay}</span>
+         </li>`;
+            });
+            html += '</ul>';
+            container.innerHTML = html;
+        }
 </script>
 </body>
 </html>

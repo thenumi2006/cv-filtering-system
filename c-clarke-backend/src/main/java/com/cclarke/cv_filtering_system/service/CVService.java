@@ -9,22 +9,30 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 
 @Service
 public class CVService {
     private final String UPLOAD_DIR = "uploads/";
 
     public String saveAndExtractText(MultipartFile file) throws IOException {
-        // 1. Create directory if it doesn't exist
-        Path uploadPath = Paths.get(UPLOAD_DIR);
+        Path uploadPath = Paths.get("uploads/");
         if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
 
-        // 2. Save the file
-        Path filePath = uploadPath.resolve(file.getOriginalFilename());
-        Files.copy(file.getInputStream(), filePath);
+        Path filePath = uploadPath.resolve(System.currentTimeMillis() + "_" + file.getOriginalFilename());
 
-        // 3. Extract Text (if PDF)
+        // Faster way to copy files
+        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
         try (PDDocument document = PDDocument.load(new File(filePath.toString()))) {
+            // SPEED BOOSTER: Only extract text from the first 3 pages
+            if (document.getNumberOfPages() > 3) {
+                PDFTextStripper stripper = new PDFTextStripper();
+                stripper.setStartPage(1);
+                stripper.setEndPage(3);
+                return stripper.getText(document);
+            }
+
             PDFTextStripper stripper = new PDFTextStripper();
             return stripper.getText(document);
         }
