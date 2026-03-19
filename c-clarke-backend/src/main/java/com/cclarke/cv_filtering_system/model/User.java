@@ -29,6 +29,15 @@ public class User {
         CANDIDATE, HR_ADMIN
     }
 
+    public User(Long userId, String name, String email, String password, Role role, LocalDateTime createdAt) {
+        this.userId = userId;
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.role = role;
+        this.createdAt = createdAt;
+    }
+
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
     public String getName() { return name; }
