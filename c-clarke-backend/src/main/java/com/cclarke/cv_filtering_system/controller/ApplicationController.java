@@ -28,47 +28,62 @@ public class ApplicationController {
     private CVService cvService;
     private final String PYTHON_AI_URL = "http://localhost:5000/match";
 
-    // 1. Candidate applies for a job
     @PostMapping("/apply")
     public Application applyForJob(
             @RequestParam("jobId") Long jobId,
             @RequestParam("candidateName") String candidateName,
             @RequestParam("file") MultipartFile file) throws Exception {
 
-        // 1. Get Job details for the description
-        Job job = jobRepository.findById(jobId).orElseThrow();
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new RuntimeException("Job not found"));
 
-        // 2. Extract CV Text
         String extractedText = cvService.saveAndExtractText(file);
 
-        // 3. Call Python AI for the score
         RestTemplate restTemplate = new RestTemplate();
         Map<String, String> aiRequest = new HashMap<>();
         aiRequest.put("cv_text", extractedText);
         aiRequest.put("job_description", job.getDescription());
 
-        Double score = 0.0;
-        try {
-            Map<String, Object> aiResponse = restTemplate.postForObject(PYTHON_AI_URL, aiRequest, Map.class);
-            score = (Double) aiResponse.get("match_score");
-        } catch (Exception e) {
-            System.out.println("AI Service down, using 0.0 score");
-        }
-
-        // 4. Save Application with Score
         Application app = new Application();
         app.setJobId(jobId);
         app.setCandidateName(candidateName);
         app.setCvText(extractedText);
-        app.setMatchScore(score); // Now we have a real score!
+
+        try {
+//             AI answer
+            Map<String, Object> aiResponse = restTemplate.postForObject("http://localhost:5000/match", aiRequest, Map.class);
+
+
+            if (aiResponse != null) {
+                // scores and reasons
+                app.setMatchScore(Double.valueOf(aiResponse.getOrDefault("match_score", 0).toString()));
+                app.setReasonSelect(aiResponse.getOrDefault("reason_select", "N/A").toString());
+                app.setReasonCaution(aiResponse.getOrDefault("reason_caution", "N/A").toString());
+                app.setAiSummary(aiResponse.getOrDefault("summary", "N/A").toString());
+
+                // candidate information
+                app.setEmail(aiResponse.getOrDefault("email", "N/A").toString());
+                app.setPhone(aiResponse.getOrDefault("phone", "N/A").toString());
+                app.setEducation(aiResponse.getOrDefault("education", "N/A").toString());
+                app.setSkills(aiResponse.getOrDefault("skills", "N/A").toString());
+                app.setWorkExperience(aiResponse.getOrDefault("work_experience", "N/A").toString());
+            }
+            applicationRepository.save(app);
+
+            applicationRepository.save(app);
+
+        } catch (Exception e) {
+            System.err.println("AI Error: " + e.getMessage());
+            app.setMatchScore(0.0);
+            app.setAiSummary("AI analysis failed to load.");
+        }
 
         return applicationRepository.save(app);
     }
 
 
-    // 2. HR Admin views candidates for a specific job
     @GetMapping("/job/{jobId}")
-    public List<Application> getApplicationsForJob(@PathVariable Long jobId) {
+    public List<Application> getApplicationsByJob(@PathVariable Long jobId) {
         return applicationRepository.findByJobIdOrderByMatchScoreDesc(jobId);
     }
 }

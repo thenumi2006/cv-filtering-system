@@ -11,9 +11,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // Disable CSRF protection so our HTML forms and JavaScript can send POST requests
+
                 .csrf(csrf -> csrf.disable())
-                // Allow all requests to pass without a login for now
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().permitAll()
                 );

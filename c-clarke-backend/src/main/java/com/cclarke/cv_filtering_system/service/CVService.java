@@ -21,11 +21,10 @@ public class CVService {
 
         Path filePath = uploadPath.resolve(System.currentTimeMillis() + "_" + file.getOriginalFilename());
 
-        // Faster way to copy files
         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
         try (PDDocument document = PDDocument.load(new File(filePath.toString()))) {
-            // SPEED BOOSTER: Only extract text from the first 3 pages
+
             if (document.getNumberOfPages() > 3) {
                 PDFTextStripper stripper = new PDFTextStripper();
                 stripper.setStartPage(1);
