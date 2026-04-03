@@ -1,3 +1,4 @@
+
 import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -8,7 +9,8 @@ CORS(app)
 
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key="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",
+    api_key="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",
+
 )
 
 
@@ -19,50 +21,66 @@ def match_cv():
     job_text = data.get('job_description', '')
 
     prompt = f"""
-        Analyze this CV against the Job Description. 
-        Return ONLY a JSON object with these EXACT keys:
-        {{
-          "match_score": 85,
-          "summary": "Short overview",
-          "email": "candidate@example.com",
-          "phone": "+123456",
-          "education": "BSc IT, University of Moratuwa",
-          "skills": "Flutter, Dart, Firebase",
-          "work_experience": "Junior Developer at AppWave (2024-Present)",
-          "reason_select": "Strong Flutter skills",
-          "reason_caution": "Missing cloud experience"
-        }}
+        You are a Senior Technical Recruiter. Your task is to perform a strict Skill Gap Analysis.
 
-        CV: {cv_text[:2500]}
-        Job: {job_text[:1000]}
-        """
+        COMPARE:
+        Job Description: {job_text[:1000]}
+        Candidate CV: {cv_text[:3000]}
+
+        SCORING RULES (BE VERY STRICT):
+        1. 85-100%: Perfect match. Candidate has the exact skills, tools, and required years of experience.
+        2. 50-84%: Partial match. Has the right background but missing 1 or 2 secondary tools or slightly less experience.
+        3. 10-49%: Weak match. Right industry (e.g., IT) but wrong specialized skills (e.g., a QA applying for a Dev role).
+        4. 0-9%: Complete mismatch. The candidate is from a completely different profession (e.g., a Video Editor applying for a Java role).
+
+        OUTPUT RULES:
+        - Return ONLY a JSON object.
+        - Every value MUST be a single string (NO lists, NO brackets []).
+        - If the score is below 20%, the 'reason_select' should be "Not recommended."
+
+        REQUIRED JSON FORMAT:
+        {{
+          "match_score": 0,
+          "summary": "2-sentence professional overview.",
+          "email": "extracted_email",
+          "phone": "extracted_phone",
+          "education": "Degree and University only",
+          "skills": "List top skills separated by commas",
+          "work_experience": "Most recent Job Title and Company",
+          "reason_select": "Why they fit (or 'None' if low score)",
+          "reason_caution": "The biggest reason why they are NOT a fit"
+        }}
+    """
 
     try:
         completion = client.chat.completions.create(
-            model="qwen/qwen2.5-coder-7b-instruct",
+            # Try this exact ID - it is currently the most stable 'Flash' model
+            model="google/gemini-2.0-flash-001",
             messages=[
-                {"role": "system", "content": "You are a JSON generator. Use only double quotes."},
+                {"role": "system",
+                 "content": "You are a factual HR assistant. If a skill is not in the CV, do NOT list it. Do not invent technical skills for non-technical people."},
                 {"role": "user", "content": prompt}
             ],
-
+            # CRITICAL: 0.0 prevents the AI from 'guessing' or inventing skills
+            temperature=0.0,
             response_format={"type": "json_object"}
         )
 
         raw_text = completion.choices[0].message.content
-        print(f"AI Sent: {raw_text}")
-
+        print(f"DEBUG - AI Sent: {raw_text}")
         ai_data = json.loads(raw_text)
+
+        # Clean the data for Java
+        for key in ai_data:
+            if isinstance(ai_data[key], (list, dict)):
+                ai_data[key] = str(ai_data[key]).replace("[", "").replace("]", "").replace("'", "")
 
         return jsonify(ai_data)
 
     except Exception as e:
-        print(f"Error: {e}")
-        return jsonify({
-            "match_score": 0,
-            "summary": "The AI sent a bad format. Please try again.",
-            "reason_select": "N/A",
-            "reason_caution": str(e)
-        }), 200
+        print(f"Model Error: {e}")
+        # Fallback to a different stable model if the first one fails
+        return jsonify({"match_score": 0, "summary": "API Connection Error. Please check model ID."}), 200
 
 
 if __name__ == '__main__':

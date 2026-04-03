@@ -116,61 +116,54 @@
     async function viewCandidates(jobId) {
     const container = document.getElementById(`candidates-for-${jobId}`);
 
-    if (!container.classList.contains('d-none')) {
+    if(!container.classList.contains('d-none')) {
         container.classList.add('d-none');
         return;
     }
 
     container.classList.remove('d-none');
-    container.innerHTML = '<span class="text-muted">Loading candidates...</span>';
+    container.innerHTML = '<div class="text-primary mt-2">🔄 Fetching results from database...</div>';
 
     try {
         const response = await fetch(`/api/applications/job/${jobId}`);
         const applications = await response.json();
 
-        if (applications.length === 0) {
-            container.innerHTML = '<div class="alert alert-light small text-danger">No candidates have applied yet.</div>';
+        if(applications.length === 0) {
+            container.innerHTML = '<div class="alert alert-warning mt-2">No candidates found in database.</div>';
             return;
         }
 
-        let html = '<div class="mt-2">';
-
+        let html = '<div class="mt-3">';
         applications.forEach(app => {
             html += `
-            <div class="card mb-3 shadow-sm border-start border-primary border-4">
+            <div class="card mb-3 shadow-sm border-start border-4 border-success">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
-                        <h5>👤 ${app.candidateName}</h5>
-                        <span class="badge ${app.matchScore > 70 ? 'bg-success' : 'bg-warning text-dark'}">
-                            AI Match: ${app.matchScore}%
-                        </span>
+                        <h5 class="card-title">👤 ${app.candidateName}</h5>
+                        <span class="badge bg-primary fs-6">${app.matchScore}% Match</span>
                     </div>
 
-                    <div class="mt-3 p-3 bg-light rounded">
-                        <h6>📄 Candidate Profile (Extracted from CV)</h6>
-                        <div class="row small">
-                            <div class="col-md-6">
-                                <p class="mb-1"><strong>📧 Email:</strong> ${app.email || 'N/A'}</p>
-                                <p class="mb-1"><strong>📞 Phone:</strong> ${app.phone || 'N/A'}</p>
-                            </div>
-                            <div class="col-md-6">
-                                <p class="mb-1"><strong>🎓 Education:</strong> ${app.education || 'N/A'}</p>
-                                <p class="mb-1"><strong>🛠️ Skills:</strong> ${app.skills || 'N/A'}</p>
-                            </div>
+                    <div class="row mt-3 bg-light p-2 rounded small">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>📧 Email:</strong> ${app.email || 'N/A'}</p>
+                            <p class="mb-1"><strong>📞 Phone:</strong> ${app.phone || 'N/A'}</p>
                         </div>
-                        <p class="small mt-2 mb-0"><strong>💼 Last Experience:</strong> ${app.workExperience || 'N/A'}</p>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>🎓 Edu:</strong> ${app.education || 'N/A'}</p>
+                            <p class="mb-1"><strong>🛠️ Skills:</strong> ${app.skills || 'N/A'}</p>
+                        </div>
                     </div>
 
                     <div class="mt-3">
-                        <h6>🤖 AI Matching Logic</h6>
-                        <p class="small text-muted mb-2"><em>${app.aiSummary}</em></p>
+                        <h6>🤖 AI Matching Analysis</h6>
+                        <p class="small text-muted"><em>${app.aiSummary}</em></p>
                         <div class="row">
                             <div class="col-6">
-                                <p class="text-success small mb-0"><strong>✓ Strength:</strong></p>
+                                <p class="text-success small mb-0"><strong>✓ Why Hire:</strong></p>
                                 <p class="small">${app.reasonSelect}</p>
                             </div>
                             <div class="col-6">
-                                <p class="text-danger small mb-0"><strong>⚠ Gap:</strong></p>
+                                <p class="text-danger small mb-0"><strong>⚠ Gaps:</strong></p>
                                 <p class="small">${app.reasonCaution}</p>
                             </div>
                         </div>
@@ -178,14 +171,14 @@
                 </div>
             </div>`;
         });
-
         html += '</div>';
 
-
+        // THE FIX: Put the built HTML into the container!
+        container.innerHTML = html;
 
     } catch (error) {
-        console.error("Error fetching candidates:", error);
-        container.innerHTML = '<div class="alert alert-danger small">Error loading candidates.</div>';
+        console.error("Fetch Error:", error);
+        container.innerHTML = '<div class="alert alert-danger">Error: Could not display results.</div>';
     }
 }
 </script>

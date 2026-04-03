@@ -55,18 +55,18 @@ public class ApplicationController {
 
 
             if (aiResponse != null) {
-                // scores and reasons
                 app.setMatchScore(Double.valueOf(aiResponse.getOrDefault("match_score", 0).toString()));
-                app.setReasonSelect(aiResponse.getOrDefault("reason_select", "N/A").toString());
-                app.setReasonCaution(aiResponse.getOrDefault("reason_caution", "N/A").toString());
-                app.setAiSummary(aiResponse.getOrDefault("summary", "N/A").toString());
+                app.setAiSummary(String.valueOf(aiResponse.getOrDefault("summary", "N/A")));
 
-                // candidate information
-                app.setEmail(aiResponse.getOrDefault("email", "N/A").toString());
-                app.setPhone(aiResponse.getOrDefault("phone", "N/A").toString());
-                app.setEducation(aiResponse.getOrDefault("education", "N/A").toString());
-                app.setSkills(aiResponse.getOrDefault("skills", "N/A").toString());
-                app.setWorkExperience(aiResponse.getOrDefault("work_experience", "N/A").toString());
+                // Use String.valueOf() for all extraction to prevent ClassCastExceptions
+                app.setEmail(String.valueOf(aiResponse.getOrDefault("email", "N/A")));
+                app.setPhone(String.valueOf(aiResponse.getOrDefault("phone", "N/A")));
+                app.setEducation(String.valueOf(aiResponse.getOrDefault("education", "N/A")));
+                app.setSkills(String.valueOf(aiResponse.getOrDefault("skills", "N/A")));
+                app.setWorkExperience(String.valueOf(aiResponse.getOrDefault("work_experience", "N/A")));
+
+                app.setReasonSelect(String.valueOf(aiResponse.getOrDefault("reason_select", "N/A")));
+                app.setReasonCaution(String.valueOf(aiResponse.getOrDefault("reason_caution", "N/A")));
             }
             applicationRepository.save(app);
 
