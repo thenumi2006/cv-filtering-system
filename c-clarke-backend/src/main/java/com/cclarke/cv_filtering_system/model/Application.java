@@ -8,7 +8,10 @@ public class Application {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long applicationId;
     private Long jobId;
+    private Long userId;
     private String candidateName;
+    private Long id;
+    private String jobTitle;
 
     @Column(columnDefinition = "TEXT")
     private String cvText;
@@ -36,7 +39,6 @@ public class Application {
     @Column(columnDefinition = "TEXT")
     private String workExperience;
 
-
     public Long getApplicationId() {
         return applicationId;
     }
@@ -53,12 +55,28 @@ public class Application {
         this.jobId = jobId;
     }
 
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
     public String getCandidateName() {
         return candidateName;
     }
 
     public void setCandidateName(String candidateName) {
         this.candidateName = candidateName;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getCvText() {
@@ -69,12 +87,12 @@ public class Application {
         this.cvText = cvText;
     }
 
-    public String getAiSummary() {
-        return aiSummary;
+    public String getJobTitle() {
+        return jobTitle;
     }
 
-    public void setAiSummary(String aiSummary) {
-        this.aiSummary = aiSummary;
+    public void setJobTitle(String jobTitle) {
+        this.jobTitle = jobTitle;
     }
 
     public Double getMatchScore() {
@@ -83,6 +101,14 @@ public class Application {
 
     public void setMatchScore(Double matchScore) {
         this.matchScore = matchScore;
+    }
+
+    public String getAiSummary() {
+        return aiSummary;
+    }
+
+    public void setAiSummary(String aiSummary) {
+        this.aiSummary = aiSummary;
     }
 
     public String getReasonSelect() {
@@ -109,20 +135,20 @@ public class Application {
         this.email = email;
     }
 
-    public String getEducation() {
-        return education;
-    }
-
-    public void setEducation(String education) {
-        this.education = education;
-    }
-
     public String getPhone() {
         return phone;
     }
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getEducation() {
+        return education;
+    }
+
+    public void setEducation(String education) {
+        this.education = education;
     }
 
     public String getTopSkills() {

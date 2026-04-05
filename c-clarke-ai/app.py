@@ -9,7 +9,7 @@ CORS(app)
 
 client = OpenAI(
     base_url="https://openrouter.ai/api/v1",
-    api_key="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",
+    api_key="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",
 
 )
 
@@ -54,14 +54,13 @@ def match_cv():
 
     try:
         completion = client.chat.completions.create(
-            # Try this exact ID - it is currently the most stable 'Flash' model
+
             model="google/gemini-2.0-flash-001",
             messages=[
                 {"role": "system",
                  "content": "You are a factual HR assistant. If a skill is not in the CV, do NOT list it. Do not invent technical skills for non-technical people."},
                 {"role": "user", "content": prompt}
             ],
-            # CRITICAL: 0.0 prevents the AI from 'guessing' or inventing skills
             temperature=0.0,
             response_format={"type": "json_object"}
         )
@@ -70,7 +69,6 @@ def match_cv():
         print(f"DEBUG - AI Sent: {raw_text}")
         ai_data = json.loads(raw_text)
 
-        # Clean the data for Java
         for key in ai_data:
             if isinstance(ai_data[key], (list, dict)):
                 ai_data[key] = str(ai_data[key]).replace("[", "").replace("]", "").replace("'", "")
@@ -79,7 +77,6 @@ def match_cv():
 
     except Exception as e:
         print(f"Model Error: {e}")
-        # Fallback to a different stable model if the first one fails
         return jsonify({"match_score": 0, "summary": "API Connection Error. Please check model ID."}), 200
 
 

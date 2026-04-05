@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Candidate Dashboard - C-CLARKE</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+        }
+
+        .navbar {
+            background: #fff;
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .navbar h2 {
+            color: #007bff;
+            margin: 0;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .logout-btn {
+            padding: 6px 12px;
+            border: 1px solid red;
+            background: transparent;
+            color: red;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+
+        .container {
+            padding: 30px;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .col {
+            width: 48%;
+        }
+
+        .card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: scale(1.02);
+        }
+
+        .card h5 {
+            margin: 0 0 10px;
+        }
+
+        .card p {
+            color: #555;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            background: #007bff;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            background: #0056b3;
+        }
+
+        .apply-section {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 40px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+
+        @media (max-width: 768px) {
+            .col {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="navbar">
+    <h2>C-CLARKE Careers</h2>
+    <div class="nav-right">
+        <a href="profile.html" class="nav-link"> My Profile & History</a>
+        <span id="welcomeText"></span>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+    <h2>Available Job Vacancies</h2>
+
+    <div class="row" id="jobContainer"></div>
+
+    <div id="applySection" class="apply-section">
+        <h3 id="applyTitle">Apply for Job</h3>
+
+        <input type="hidden" id="selectedJobId">
+
+        <div class="form-group">
+            <label>Candidate Name</label>
+            <input type="text" id="candidateName" readonly>
+        </div>
+
+        <div class="form-group">
+            <label>Upload CV (PDF only)</label>
+            <input type="file" id="cvFile" accept=".pdf">
+        </div>
+
+        <button class="btn" onclick="submitApplication()">
+            Submit Application
+        </button>
+
+        <div id="applyStatus"></div>
+    </div>
+</div>
+
+<script>
+    window.onload = function() {
+        const userId = localStorage.getItem('userId');
+        const userName = localStorage.getItem('userName');
+        const userRole = localStorage.getItem('userRole');
+
+        if (!userId || userRole !== 'CANDIDATE') {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        document.getElementById('welcomeText').innerText = "Welcome, " + userName;
+        document.getElementById('candidateName').value = userName;
+
+        fetchAvailableJobs();
+    };
+
+    async function fetchAvailableJobs() {
+        const response = await fetch('/api/jobs');
+        const jobs = await response.json();
+        const container = document.getElementById('jobContainer');
+
+        container.innerHTML = jobs.map(job => `
+            <div class="col">
+                <div class="card">
+                    <h5>${job.title}</h5>
+                    <p>${job.experienceRequired} Years Experience Required</p>
+                    <p>${job.requiredSkills}</p>
+                    <button class="btn" onclick="openApplyForm(${job.jobId}, '${job.title}')">
+                        Apply Now
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function openApplyForm(jobId, jobTitle) {
+        document.getElementById('applySection').style.display = 'block';
+        document.getElementById('selectedJobId').value = jobId;
+        document.getElementById('applyTitle').innerText = 'Applying for: ' + jobTitle;
+
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
+    async function submitApplication() {
+        const jobId = document.getElementById('selectedJobId').value;
+        const userId = localStorage.getItem('userId');
+        const name = document.getElementById('candidateName').value;
+        const fileInput = document.getElementById('cvFile');
+        const statusDiv = document.getElementById('applyStatus');
+
+        if (fileInput.files.length === 0) {
+            alert("Please select a PDF file.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("jobId", jobId);
+        formData.append("userId", userId);
+        formData.append("candidateName", name);
+        formData.append("file", fileInput.files[0]);
+
+        statusDiv.innerHTML = '<div class="status info">Submitting your CV... please wait.</div>';
+
+        try {
+            const response = await fetch('/api/applications/apply', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                statusDiv.innerHTML = `
+                    <div class="status success">
+                        ✅ CV Uploaded Successfully!<br>
+                        <a href="profile.html">View Application History →</a>
+                    </div>`;
+            } else {
+                statusDiv.innerHTML = '<div class="status error">Upload failed. PDF only.</div>';
+            }
+        } catch (error) {
+            statusDiv.innerHTML = '<div class="status error">Server error.</div>';
+        }
+    }
+
+    function logout() {
+        localStorage.clear();
+        window.location.replace('login.html');
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Profile - C-CLARKE Careers</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0f2f5; }
+        .profile-header { background: linear-gradient(135deg, #0d6efd, #003d99); color: white; padding: 40px 0; border-radius: 0 0 25px 25px; }
+        .profile-img { width: 120px; height: 120px; object-fit: cover; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .card { border: none; border-radius: 15px; }
+        .applied-job-card { border-left: 5px solid #0d6efd; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="candidate-dashboard.html">← Back to Jobs</a>
+        <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
+    </div>
+</nav>
+
+<div class="profile-header text-center">
+    <div class="container">
+        <img id="dispPhoto" src="https://via.placeholder.com/150" class="rounded-circle profile-img mb-3" alt="Profile">
+        <h1 id="dispName">Candidate Name</h1>
+        <p id="dispEmail" class="opacity-75">email@example.com</p>
+    </div>
+</div>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-5 mb-4">
+            <div class="card shadow-sm p-4">
+                <h4 class="mb-4">Update Personal Info</h4>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Full Name</label>
+                    <input type="text" id="editName" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Birthday</label>
+                    <input type="date" id="editBirthday" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Home Address</label>
+                    <textarea id="editAddress" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Profile Photo URL</label>
+                    <input type="text" id="editPhotoUrl" class="form-control" placeholder="e.g., https://link-to-photo.jpg">
+                </div>
+                <button class="btn btn-primary w-100" onclick="updateProfile()">Save Changes</button>
+                <div id="updateStatus" class="mt-3"></div>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="card shadow-sm p-4">
+                <h4 class="mb-4">📝 My Application History</h4>
+                <div id="applicationHistory">
+                    <p class="text-muted">Loading history...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const userId = localStorage.getItem('userId');
+
+    window.onload = async function() {
+        if (!userId) { window.location.replace('login.html'); return; }
+        loadUserData();
+        loadApplicationHistory();
+    };
+
+    async function loadUserData() {
+        try {
+            const res = await fetch(`/api/users/${userId}`);
+            const user = await res.json();
+
+            document.getElementById('dispName').innerText = user.name;
+            document.getElementById('dispEmail').innerText = user.email;
+            if(user.profilePhoto) document.getElementById('dispPhoto').src = user.profilePhoto;
+
+            document.getElementById('editName').value = user.name;
+            document.getElementById('editBirthday').value = user.birthday || '';
+            document.getElementById('editAddress').value = user.address || '';
+            document.getElementById('editPhotoUrl').value = user.profilePhoto || '';
+        } catch (err) { console.error("Error loading user:", err); }
+    }
+
+    async function updateProfile() {
+        const updatedData = {
+            name: document.getElementById('editName').value,
+            birthday: document.getElementById('editBirthday').value,
+            address: document.getElementById('editAddress').value,
+            profilePhoto: document.getElementById('editPhotoUrl').value
+        };
+
+        try {
+            const res = await fetch(`/api/users/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedData)
+            });
+
+            if (res.ok) {
+                document.getElementById('updateStatus').innerHTML = '<div class="alert alert-success">Profile successfully updated!</div>';
+                loadUserData();
+            }
+        } catch (err) { alert("Error updating profile."); }
+    }
+
+    async function loadApplicationHistory() {
+    const container = document.getElementById('applicationHistory');
+    const userId = localStorage.getItem('userId');
+
+    if (!userId) {
+        console.error("No userId found in localStorage!");
+        container.innerHTML = '<p class="text-danger">Error: You are not logged in correctly.</p>';
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/applications/user/${userId}`);
+
+        if (!res.ok) {
+            throw new Error("Backend endpoint missing or database error");
+        }
+
+        const apps = await res.json();
+
+        if (apps.length === 0) {
+            container.innerHTML = '<p class="text-muted">You have not applied for any jobs yet.</p>';
+            return;
+        }
+
+        container.innerHTML = apps.map(app => `
+            <div class="card border-0 shadow-sm mb-3" style="border-left: 5px solid #0d6efd !important;">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="fw-bold mb-1">${app.jobTitle || 'Application'}</h6>
+                        <small class="text-muted">Score Updated: ${app.matchScore > 0 ? 'Yes' : 'Pending'}</small>
+                    </div>
+                    <span class="badge bg-primary p-2">${app.matchScore}% Match</span>
+                </div>
+            </div>
+        `).join('');
+
+    } catch (err) {
+        console.error("Fetch error:", err);
+        container.innerHTML = '<p class="text-danger">⚠️ Could not load history. Please refresh the page.</p>';
+    }
+}
+    function logout() { localStorage.clear(); window.location.replace('login.html'); }
+</script>
+</body>
+</html>
